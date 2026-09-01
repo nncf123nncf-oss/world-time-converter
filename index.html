@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="主要10都市を選んで、日本時間と現地時間を相互に変換する時差計算機です。">
+  <title>世界時差計算機</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #DCE1EC;
+      --surface: #FFFFFF;
+      --text: #22283A;
+      --muted: #5C647A;
+      --accent: #3E4C8C;
+      --accent-hover: #313C6E;
+      --danger: #C0392B;
+      --border: #C6CCDD;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      width: min(100% - 32px, 560px);
+      margin: 0 auto;
+      padding: 32px 0 40px;
+    }
+
+    .page-header { margin-bottom: 24px; }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    .lead {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .tool {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .field + .field { margin-top: 24px; }
+
+    fieldset {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    legend,
+    .field-label {
+      display: block;
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    select,
+    input[type="date"],
+    input[type="time"] {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+    }
+
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .choice {
+      display: flex;
+      min-height: 44px;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.4;
+      font-size: 15px;
+    }
+
+    .choice:has(input:checked) {
+      border-color: var(--accent);
+      background: #EAEDF8;
+    }
+
+    .choice input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+
+    .datetime-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 16px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #FFFFFF;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-hover); }
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    .choice:has(input:focus-visible) { outline: 3px solid #A9B4DC; outline-offset: 2px; }
+
+    .message {
+      min-height: 22px;
+      margin: 8px 0 0;
+      color: var(--danger);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .result {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #F3F5FA;
+      text-align: center;
+    }
+
+    .result-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .result-time {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.3;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .result-day-label {
+      display: inline-block;
+      font-size: 20px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .result-sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    @media (max-width: 375px) {
+      .page {
+        width: min(100% - 24px, 560px);
+        padding-top: 24px;
+      }
+
+      .tool { padding: 16px; }
+      .result-time { font-size: 26px; }
+      .result-day-label { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <h1>世界時差計算機</h1>
+      <p class="lead">都市を選んで時刻を入れると、もう片方の時刻と日付のズレ（前日・翌日）を表示します。</p>
+    </header>
+
+    <section class="tool" aria-label="時差計算フォーム">
+      <div class="field">
+        <label class="field-label" for="city">都市（日本を基準に変換）</label>
+        <select id="city">
+          <option value="America/New_York">ニューヨーク</option>
+          <option value="America/Los_Angeles">ロサンゼルス</option>
+          <option value="Europe/London">ロンドン</option>
+          <option value="Europe/Paris">パリ</option>
+          <option value="Asia/Kolkata">デリー</option>
+          <option value="Australia/Sydney">シドニー</option>
+          <option value="Asia/Singapore">シンガポール</option>
+          <option value="Asia/Shanghai">上海</option>
+          <option value="Asia/Bangkok">バンコク</option>
+          <option value="Asia/Dubai">ドバイ</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <fieldset>
+          <legend>変換方向</legend>
+          <div class="choices">
+            <label class="choice">
+              <input type="radio" name="direction" value="jp-to-local" checked>
+              日本 → 現地
+            </label>
+            <label class="choice">
+              <input type="radio" name="direction" value="local-to-jp">
+              現地 → 日本
+            </label>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="base-date">基準日</label>
+        <div class="datetime-row">
+          <input type="date" id="base-date">
+          <input type="time" id="base-time">
+        </div>
+      </div>
+
+      <div class="field">
+        <button type="button" id="convert">変換する</button>
+        <p class="message" id="error-message" aria-live="polite"></p>
+      </div>
+
+      <div class="field">
+        <div class="result" id="result" aria-live="polite">
+          <p class="result-empty" id="result-text">ここに変換結果が表示されます</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const JP_TIMEZONE = 'Asia/Tokyo';
+
+      const citySelect = document.querySelector('#city');
+      const dateInput = document.querySelector('#base-date');
+      const timeInput = document.querySelector('#base-time');
+      const errorMessage = document.querySelector('#error-message');
+      const resultBox = document.querySelector('#result');
+
+      // 基準日の初期値は今日
+      const today = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      dateInput.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      const selectedDirection = () =>
+        document.querySelector('input[name="direction"]:checked').value;
+
+      // 指定した瞬間(Dateオブジェクト)が、あるIANAタイムゾーンで何年何月何日何時何分かをパーツで返す
+      const getZonedParts = (date, timeZone) => {
+        const dtf = new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hourCycle: 'h23',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        const parts = {};
+        dtf.formatToParts(date).forEach((p) => {
+          if (p.type !== 'literal') parts[p.type] = Number(p.value);
+        });
+        return parts;
+      };
+
+      // あるタイムゾーンでの「壁時計時刻(年月日時分)」を、実際のUTC瞬間(Dateオブジェクト)に変換する
+      // Intl.DateTimeFormatはUTC瞬間→ゾーン時刻の変換しかできないため、
+      // 逆変換は「UTC瞬間と仮定して試し変換→ズレを測って補正」の2段階で行う
+      // 戻り値の isGap は、DST切替（時計を進める瞬間）で実在しない壁時計時刻を
+      // 入力した可能性がある場合に true になる（offset1とoffset2が食い違うケース）。
+      // その場合、計算結果は近い実在時刻への近似値になる。
+      const zonedWallTimeToUtc = (y, mo, d, h, mi, timeZone) => {
+        const guessUtcMs = Date.UTC(y, mo - 1, d, h, mi, 0);
+        const parts1 = getZonedParts(new Date(guessUtcMs), timeZone);
+        const asUtcIfZoned1 = Date.UTC(parts1.year, parts1.month - 1, parts1.day, parts1.hour, parts1.minute, parts1.second);
+        const offset1 = asUtcIfZoned1 - guessUtcMs; // ゾーン時刻とUTCの差(ms)
+        let utcMs = guessUtcMs - offset1;
+
+        // DST境界をまたぐケースに備えて、補正後のオフセットで再検算する
+        const parts2 = getZonedParts(new Date(utcMs), timeZone);
+        const asUtcIfZoned2 = Date.UTC(parts2.year, parts2.month - 1, parts2.day, parts2.hour, parts2.minute, parts2.second);
+        const offset2 = asUtcIfZoned2 - utcMs;
+        const isGap = offset2 !== offset1;
+        if (isGap) {
+          utcMs = guessUtcMs - offset2;
+        }
+        return { date: new Date(utcMs), isGap };
+      };
+
+      const weekdayJa = ['日', '月', '火', '水', '木', '金', '土'];
+
+      const formatZoned = (utcDate, timeZone) => {
+        const p = getZonedParts(utcDate, timeZone);
+        const dow = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(utcDate);
+        return {
+          y: p.year, mo: p.month, d: p.day, h: p.hour, mi: p.minute,
+          timeText: `${pad(p.hour)}:${pad(p.minute)}`,
+          dateText: `${p.year}/${pad(p.month)}/${pad(p.day)}`
+        };
+      };
+
+      // 基準日(sourceの日付)と結果日(targetの日付)を、UTC正午の日付として比較し
+      // 前日/翌日/当日のズレ日数を返す(タイムゾーンをまたぐ日数計算にDST影響を出さないため正午基準にする)
+      const dayDiff = (baseY, baseMo, baseD, targetY, targetMo, targetD) => {
+        const baseNoonUtc = Date.UTC(baseY, baseMo - 1, baseD, 12, 0, 0);
+        const targetNoonUtc = Date.UTC(targetY, targetMo - 1, targetD, 12, 0, 0);
+        return Math.round((targetNoonUtc - baseNoonUtc) / 86400000);
+      };
+
+      const showError = (text) => {
+        errorMessage.textContent = text;
+      };
+
+      const clearResult = () => {
+        resultBox.innerHTML = '<p class="result-empty" id="result-text">ここに変換結果が表示されます</p>';
+      };
+
+      const render = () => {
+        errorMessage.textContent = '';
+
+        const dateVal = dateInput.value;
+        const timeVal = timeInput.value;
+
+        if (!dateVal || !timeVal) {
+          showError('時刻を入力してください');
+          clearResult();
+          return;
+        }
+
+        try {
+          const [y, mo, d] = dateVal.split('-').map(Number);
+          const [h, mi] = timeVal.split(':').map(Number);
+
+          const cityTz = citySelect.value;
+          const cityLabel = citySelect.options[citySelect.selectedIndex].textContent;
+          const direction = selectedDirection();
+
+          const sourceTz = direction === 'jp-to-local' ? JP_TIMEZONE : cityTz;
+          const targetTz = direction === 'jp-to-local' ? cityTz : JP_TIMEZONE;
+          const targetLabel = direction === 'jp-to-local' ? cityLabel : '日本';
+          const sourceLabel = direction === 'jp-to-local' ? '日本' : cityLabel;
+
+          const { date: utcInstant, isGap } = zonedWallTimeToUtc(y, mo, d, h, mi, sourceTz);
+          const targetInfo = formatZoned(utcInstant, targetTz);
+
+          const diff = dayDiff(y, mo, d, targetInfo.y, targetInfo.mo, targetInfo.d);
+          let dayLabel = '';
+          if (diff === 1) dayLabel = '（翌日）';
+          else if (diff === -1) dayLabel = '（前日）';
+          else if (diff >= 2) dayLabel = `（${diff}日後）`;
+          else if (diff <= -2) dayLabel = `（${Math.abs(diff)}日前）`;
+
+          const gapNote = isGap
+            ? '<p class="result-sub">※この時刻はサマータイム切替のため実在しないため、近い時刻に近似しています。</p>'
+            : '';
+
+          resultBox.innerHTML = `
+            <p class="result-time">${targetInfo.timeText}${dayLabel ? ` <span class="result-day-label">${dayLabel}</span>` : ''}</p>
+            <p class="result-sub">${targetLabel}の時刻（${targetInfo.dateText}） ／ 基準: ${sourceLabel} ${pad(h)}:${pad(mi)}（${y}/${pad(mo)}/${pad(d)}）</p>
+            ${gapNote}
+          `;
+        } catch (error) {
+          showError('時刻の変換に失敗しました。入力値を確認してください');
+          clearResult();
+        }
+      };
+
+      document.querySelector('#convert').addEventListener('click', render);
+    })();
+  </script>
+</body>
+</html>
